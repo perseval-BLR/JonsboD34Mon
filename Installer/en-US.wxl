@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-US" Codepage="1252" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="Language" Value="1033" />
+  <String Id="Downgrade" Value="A newer version of Jonsbo D34 Mon is already installed." />
+  <String Id="InstallingPawnIO" Value="Installing the PawnIO sensor driver" />
+  <String Id="LaunchApp" Value="Launch Jonsbo D34 Mon" />
+</WixLocalization>

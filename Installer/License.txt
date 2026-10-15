@@ -1,0 +1,14 @@
+Jonsbo D34 Mon
+Бесплатная программа с открытым исходным кодом (лицензия MIT) для экрана корпуса JONSBO D34. Предоставляется «как есть», без каких-либо гарантий. Не связана с JONSBO.
+Используемые компоненты:
+• LibreHardwareMonitor — чтение датчиков процессора. MPL-2.0. github.com/LibreHardwareMonitor/LibreHardwareMonitor
+• PawnIO — подписанный драйвер для доступа к датчикам. GPL-2.0, © namazso. pawnio.eu. Устанавливается, если его ещё нет, и остаётся в системе после удаления программы (им могут пользоваться другие программы).
+• .NET Runtime — © Microsoft, MIT.
+• Шрифт DSEG7 Classic — © keshikan, SIL Open Font License 1.1.
+
+Free, open-source software (MIT license) for the JONSBO D34 case screen. Provided "as is", without warranty of any kind. Not affiliated with JONSBO.
+Third-party components:
+• LibreHardwareMonitor — CPU sensor readings. MPL-2.0. github.com/LibreHardwareMonitor/LibreHardwareMonitor
+• PawnIO — signed driver for sensor access. GPL-2.0, © namazso. pawnio.eu. Installed if missing; kept after uninstalling this program (other programs may use it).
+• .NET Runtime — © Microsoft, MIT.
+• DSEG7 Classic font — © keshikan, SIL Open Font License 1.1.

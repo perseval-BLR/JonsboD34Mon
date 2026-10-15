@@ -1,0 +1,100 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- UpgradeCode must never change: it is how newer versions find and replace older ones. -->
+  <Package Name="Jonsbo D34 Mon"
+           Manufacturer="Jonsbo D34 Mon"
+           Version="$(Version)"
+           UpgradeCode="{B85858C3-0C93-4D0D-9A2B-82891B7EA39D}"
+           Language="!(loc.Language)"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="!(loc.Downgrade)" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="..\JonsboD34Mon\Assets\app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <!--
+      PawnIO: the signed kernel driver LibreHardwareMonitor uses to read CPU temperatures and clocks
+      (https://pawnio.eu, GPL-2.0). Its official setup is embedded and run silently only when the driver
+      isn't installed yet. It is shared with other monitoring tools, so uninstalling us leaves it in place.
+    -->
+    <Property Id="PAWNIO_INSTALLED" Secure="yes">
+      <RegistrySearch Id="PawnIOService" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\PawnIO"
+                      Name="ImagePath" Type="raw" Bitness="always64" />
+    </Property>
+    <Binary Id="PawnIOSetup" SourceFile="redist\PawnIO_setup.exe" />
+    <!-- Not fatal if it fails: the app still runs and says the CPU temperature needs PawnIO. -->
+    <CustomAction Id="InstallPawnIO" BinaryRef="PawnIOSetup" ExeCommand="-install -silent"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Jonsbo D34 Mon" />
+    </StandardDirectory>
+
+    <Feature Id="Main">
+      <Component Id="MainExe" Directory="INSTALLFOLDER">
+        <File Id="AppExe" Source="$(AppDir)\JonsboD34Mon.exe" KeyPath="yes" />
+      </Component>
+      <!-- License texts travel with the program (MIT for ours, notices for third-party parts, OFL for the font). -->
+      <Component Id="LicenseFile" Directory="INSTALLFOLDER">
+        <File Id="LicenseFile" Source="..\LICENSE" Name="LICENSE.txt" />
+      </Component>
+      <Component Id="NoticesFile" Directory="INSTALLFOLDER">
+        <File Id="NoticesFile" Source="..\THIRD-PARTY-NOTICES.md" Name="THIRD-PARTY-NOTICES.md" />
+      </Component>
+      <Component Id="FontLicenseFile" Directory="INSTALLFOLDER">
+        <File Id="FontLicenseFile" Source="..\JonsboD34Mon\Assets\DSEG-LICENSE.txt" Name="DSEG-LICENSE.txt" />
+      </Component>
+      <!-- Windows Installer rules (ICE43/57): a non-advertised shortcut lives in its own component keyed by HKCU. -->
+      <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+        <Shortcut Id="StartMenuShortcut" Name="Jonsbo D34 Mon" Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\JonsboD34Mon" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+      <!-- Per-machine install: DesktopFolder is the public (all users) desktop. -->
+      <Component Id="DesktopShortcut" Directory="DesktopFolder">
+        <Shortcut Id="DesktopShortcut" Name="Jonsbo D34 Mon" Target="[#AppExe]" WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\JonsboD34Mon" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <!--
+      A running copy: with the UI, Restart Manager offers to close it (the app exits on that request).
+      As a fallback (silent installs, or "don't close"), it is stopped right before files are removed or
+      replaced. An upgrade first uninstalls the old version, whose sequence runs this too.
+    -->
+    <SetProperty Id="StopRunningApp" Value="&quot;[System64Folder]taskkill.exe&quot; /F /IM JonsboD34Mon.exe"
+                 Before="StopRunningApp" Sequence="execute" />
+    <CustomAction Id="StopRunningApp" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+
+    <!-- On uninstall, remove the logon task the app creates for "Autostart". -->
+    <SetProperty Id="DeleteAutostartTask" Value="&quot;[System64Folder]schtasks.exe&quot; /Delete /TN JonsboD34Mon /F"
+                 Before="DeleteAutostartTask" Sequence="execute" />
+    <CustomAction Id="DeleteAutostartTask" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Impersonate="no" Return="ignore" />
+    <InstallExecuteSequence>
+      <Custom Action="InstallPawnIO" After="InstallFiles" Condition="NOT PAWNIO_INSTALLED AND NOT REMOVE" />
+      <Custom Action="StopRunningApp" Before="RemoveFiles" />
+      <Custom Action="DeleteAutostartTask" After="StopRunningApp"
+              Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+
+    <!-- UI: welcome, license, folder, finish with "Launch" checkbox. -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <UI>
+      <ProgressText Action="InstallPawnIO" Message="!(loc.InstallingPawnIO)" />
+    </UI>
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="!(loc.LaunchApp)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#AppExe]" />
+    <CustomAction Id="LaunchApp" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec" Impersonate="yes" />
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApp"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+
+  </Package>
+</Wix>
