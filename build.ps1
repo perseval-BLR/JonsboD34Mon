@@ -2,7 +2,7 @@
 #   powershell -ExecutionPolicy Bypass -File build.ps1 [-Version 1.0.0] [-Dotnet path\to\dotnet.exe]
 # Output: dist\ — "Jonsbo D34 Mon <version> (ru).msi" and "(en).msi".
 param(
-    [string]$Version = '1.1.0',
+    [string]$Version = '1.1.1',
     [string]$Dotnet = 'dotnet'
 )
 $ErrorActionPreference = 'Stop'

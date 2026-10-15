@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>JonsboD34Mon</AssemblyName>
     <RootNamespace>JonsboD34Mon</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Product>Jonsbo D34 Mon</Product>
 
     <PlatformTarget>x64</PlatformTarget>
@@ -24,6 +24,9 @@
 
     <!-- Lean runtime: no ICU, no localized resources, no background GC thread. -->
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Every WinForms control turns a keyboard layout switch into new CultureInfo(lcid); in invariant
+         mode that throws unless non-predefined cultures are allowed (they then behave as invariant). -->
+    <PredefinedCulturesOnly>false</PredefinedCulturesOnly>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ServerGarbageCollection>false</ServerGarbageCollection>

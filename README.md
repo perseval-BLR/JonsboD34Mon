@@ -42,8 +42,8 @@ Download from [Releases](../../releases):
 
 | File | What it is |
 |---|---|
-| `Jonsbo D34 Mon 1.1.0 (en).msi` / `(ru).msi` | installer: Program Files, shortcuts, uninstall from *Apps* |
-| `Jonsbo D34 Mon 1.1.0 portable.zip` | portable build: unzip and run, settings are stored next to the exe |
+| `Jonsbo D34 Mon 1.1.1 (en).msi` / `(ru).msi` | installer: Program Files, shortcuts, uninstall from *Apps* |
+| `Jonsbo D34 Mon 1.1.1 portable.zip` | portable build: unzip and run, settings are stored next to the exe |
 | `SHA256SUMS.txt` | file checksums |
 
 - .NET is built in, nothing else to install.
@@ -90,6 +90,6 @@ Code: [MIT](LICENSE). Third-party components and their licenses: [THIRD-PARTY-NO
 **Экспериментальная** лёгкая замена *PC Monitor All* для экрана корпуса **JONSBO D34**: время, температура CPU и GPU, загрузка и частота CPU. Эксперимент одного энтузиаста, проверено на одном ПК. Проект не связан с JONSBO.
 
 - **Было → стало:** 15–19 % одного ядра → 0,55 %, ~75 МБ → ~16 МБ памяти, утечка дескрипторов (+5 в секунду) → стабильно ~410.
-- **Установка:** со страницы [Releases](../../releases) скачайте `Jonsbo D34 Mon 1.1.0 (ru).msi` или `portable.zip`. .NET встроен, драйвер датчиков PawnIO установщик поставит сам. В окне включите «Автозапуск» и **отключите автозапуск старого PC Monitor All**, иначе экран будет мигать. Установщик не подписан: «Подробнее» → «Выполнить в любом случае».
+- **Установка:** со страницы [Releases](../../releases) скачайте `Jonsbo D34 Mon 1.1.1 (ru).msi` или `portable.zip`. .NET встроен, драйвер датчиков PawnIO установщик поставит сам. В окне включите «Автозапуск» и **отключите автозапуск старого PC Monitor All**, иначе экран будет мигать. Установщик не подписан: «Подробнее» → «Выполнить в любом случае».
 - **Риски:** используется драйвер ядра PawnIO (подписанный, открытый); античиты в онлайн-играх могут на него реагировать; программа работает с правами администратора; протокол экрана восстановлен по оригиналу; Intel, видеокарты AMD/Intel и другие экраны JONSBO не проверялись. Подробности в разделе [Risks and limitations](#risks-and-limitations).
 - Нет автообновлений, телеметрии и доступа в сеть. Код под лицензией MIT.

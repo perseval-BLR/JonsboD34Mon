@@ -3,14 +3,14 @@
   <!--
     Build (see build.ps1):
       dotnet publish ..\JonsboD34Mon -c Release -o <AppDir> -self-contained true
-      dotnet build JonsboD34Mon.Installer.wixproj -c Release -p:AppDir=<AppDir> -p:Version=1.1.0
+      dotnet build JonsboD34Mon.Installer.wixproj -c Release -p:AppDir=<AppDir> -p:Version=1.1.1
     Produces one MSI per culture: bin\Release\ru-RU\ and bin\Release\en-US\.
   -->
   <PropertyGroup>
     <OutputName>JonsboD34Mon</OutputName>
     <InstallerPlatform>x64</InstallerPlatform>
     <Cultures>ru-RU;en-US</Cultures>
-    <Version Condition="'$(Version)' == ''">1.1.0</Version>
+    <Version Condition="'$(Version)' == ''">1.1.1</Version>
     <DefineConstants>AppDir=$(AppDir);Version=$(Version)</DefineConstants>
   </PropertyGroup>
 

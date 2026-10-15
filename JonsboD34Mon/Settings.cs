@@ -11,7 +11,7 @@ namespace JonsboD34Mon;
 /// </summary>
 internal sealed class Settings
 {
-    static readonly string Dir = File.Exists(Path.Combine(AppContext.BaseDirectory, "JonsboD34Mon.portable"))
+    public static readonly string Dir =File.Exists(Path.Combine(AppContext.BaseDirectory, "JonsboD34Mon.portable"))
         ? AppContext.BaseDirectory
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JonsboD34Mon");
     static readonly string FilePath = Path.Combine(Dir, "settings.ini");
@@ -79,7 +79,7 @@ internal sealed class Settings
 }
 
 /// <summary>
-/// Autostart through Task Scheduler: the app needs admin rights (HWiNFO driver), and a task with
+/// Autostart through Task Scheduler: the app needs admin rights (PawnIO driver), and a task with
 /// "highest privileges" starts it at logon without a UAC prompt. No time limit, runs on battery.
 /// </summary>
 internal static class Autostart
