@@ -11,7 +11,7 @@ namespace JonsboD34Mon;
 /// </summary>
 internal sealed class Settings
 {
-    public static readonly string Dir =File.Exists(Path.Combine(AppContext.BaseDirectory, "JonsboD34Mon.portable"))
+    public static readonly string Dir = File.Exists(Path.Combine(AppContext.BaseDirectory, "JonsboD34Mon.portable"))
         ? AppContext.BaseDirectory
         : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JonsboD34Mon");
     static readonly string FilePath = Path.Combine(Dir, "settings.ini");
@@ -138,15 +138,22 @@ internal static class Autostart
         error = "";
         try
         {
+            // Only stderr is read (that's where the error text goes); a redirected but unread stdout could fill up
+            // and hang schtasks. Read asynchronously so the timeout below actually applies.
             using var p = Process.Start(new ProcessStartInfo("schtasks.exe", args)
             {
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true,
             })!;
-            error = p.StandardError.ReadToEnd().Trim();
-            p.WaitForExit(10000);
+            var stderr = p.StandardError.ReadToEndAsync();
+            if (!p.WaitForExit(10000))
+            {
+                p.Kill();
+                error = "schtasks.exe: timeout";
+                return false;
+            }
+            error = stderr.Result.Trim();
             return p.ExitCode == 0;
         }
         catch (Exception e) when (e is System.ComponentModel.Win32Exception or InvalidOperationException)

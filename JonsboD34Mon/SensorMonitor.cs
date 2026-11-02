@@ -26,10 +26,12 @@ internal sealed class SensorMonitor : IDisposable
 {
     const int ResendMs = 250;
     const int FirstReadingTimeoutMs = 5000;
+    const int MaxCpuReopens = 5;
 
     readonly Settings _settings;
     readonly CaseDisplay _display = new();          // screen thread only
     readonly byte[] _packet = new byte[64];         // screen thread only
+    string? _screenLastError;                       // screen thread only
     readonly Thread _sensorThread, _screenThread;
     readonly AutoResetEvent _sensorWake = new(false), _screenWake = new(false);
     readonly ManualResetEventSlim _firstReading = new(false);
@@ -38,8 +40,11 @@ internal sealed class SensorMonitor : IDisposable
     Computer? _computer;
     IHardware[] _cpus = [];
     GpuTemp? _gpu;
-    string? _error;
+    string? _error, _sensorLastError;
     readonly SensorOption?[] _selected = new SensorOption?[4];
+    // GPU handles go stale after a driver update or reset; CPU temperatures appear only once PawnIO runs.
+    Retry _gpuRetry = new(firstMs: 10_000, everyMs: 60_000), _cpuRetry = new(firstMs: 30_000, everyMs: 60_000);
+    int _cpuReopens;
 
     volatile bool _stop, _rescan, _reselect = true, _screenConnected;
     volatile SensorCatalog _catalog = SensorCatalog.Empty;
@@ -93,40 +98,64 @@ internal sealed class SensorMonitor : IDisposable
         bool offSent = false;
         while (!_stop)
         {
-            if (_settings.ScreenOn)
+            try
             {
-                CaseDisplay.BuildPacket(_packet, Current, DateTime.Now, _settings.Fahrenheit);
-                _display.Send(_packet);
-                offSent = false;
+                if (_settings.ScreenOn)
+                {
+                    CaseDisplay.BuildPacket(_packet, Current, DateTime.Now, _settings.Fahrenheit);
+                    _display.Send(_packet);
+                    offSent = false;
+                }
+                else if (!offSent)
+                {
+                    CaseDisplay.BuildOffPacket(_packet);
+                    offSent = _display.Send(_packet);
+                }
+                _screenConnected = _display.IsConnected;
             }
-            else if (!offSent)
+            catch (Exception e)
             {
-                CaseDisplay.BuildOffPacket(_packet);
-                offSent = _display.Send(_packet);
+                LogOnce(e, ref _screenLastError); // a dead thread would leave the screen blank until restart
             }
-            _screenConnected = _display.IsConnected;
             _screenWake.WaitOne(ResendMs - DateTime.Now.Millisecond % ResendMs + 5);
         }
 
-        if (_settings.ScreenOn)
+        try
         {
-            CaseDisplay.BuildOffPacket(_packet);
-            _display.Send(_packet);
+            if (_settings.ScreenOn)
+            {
+                CaseDisplay.BuildOffPacket(_packet);
+                _display.Send(_packet);
+            }
+            _display.Dispose();
         }
-        _display.Dispose();
+        catch (Exception) { } // shutting down anyway
+    }
+
+    /// <summary>Logs an error from a background loop, but not the same one again every tick.</summary>
+    static void LogOnce(Exception e, ref string? last)
+    {
+        string text = e.ToString();
+        if (text == last)
+            return;
+        last = text;
+        Program.LogError(e);
     }
 
     // ---- Sensor thread --------------------------------------------------------------------------
 
     void SensorLoop()
     {
-        Open();
+        try { Open(); }
+        catch (Exception e) { LogOnce(e, ref _sensorLastError); }
         // Pages touched only during start-up are handed back once.
         Native.TrimWorkingSet();
 
         while (!_stop)
         {
-            Tick();
+            // A failed tick keeps the last values; the screen thread goes on sending them with the current time.
+            try { Tick(); }
+            catch (Exception e) { LogOnce(e, ref _sensorLastError); }
             _firstReading.Set();
             // Read just after each second boundary, in step with the clock on the screen.
             _sensorWake.WaitOne(1000 - DateTime.Now.Millisecond + 20);
@@ -139,6 +168,7 @@ internal sealed class SensorMonitor : IDisposable
 
     void Open()
     {
+        _error = null;
         try
         {
             // CPU only: no motherboard/storage/GPU/controller scanning, nothing else gets loaded.
@@ -153,10 +183,20 @@ internal sealed class SensorMonitor : IDisposable
             _error = e.Message;
             _cpus = [];
         }
-        // CPU temperatures and clocks need the PawnIO driver (installed by our setup); load works without it.
-        if (_error == null && !PawnIoInstalled())
-            _error = "pawnio";
         BuildCatalog();
+        // CPU temperatures and clocks need the PawnIO driver (installed by our setup); load works without it.
+        // Judged by the result, not by the service being registered: a registered driver can still fail to run.
+        if (_error == null && _catalog.Options[(int)Metric.CpuTemp].Length == 0)
+            _error = PawnIoInstalled() ? "nocputemp" : "pawnio";
+    }
+
+    /// <summary>Closes and reopens the library, e.g. after PawnIO was installed or started while we ran.</summary>
+    void Reopen()
+    {
+        try { _computer?.Close(); }
+        catch (Exception) { } // replaced right below
+        _computer = null;
+        Open();
     }
 
     void BuildCatalog()
@@ -202,9 +242,52 @@ internal sealed class SensorMonitor : IDisposable
         else if (Options != null)
             Options = null; // window closed: don't keep (or later show) stale picker values
 
-        Current = new Snapshot(Read(_selected[0]), Read(_selected[1]), Read(_selected[2]), Read(_selected[3]),
+        double gpuTemp = Read(_selected[1]);
+        Current = new Snapshot(Read(_selected[0]), gpuTemp, Read(_selected[2]), Read(_selected[3]),
                                DateTime.Now, _screenConnected, _error);
         Updated?.Invoke();
+        Recover(gpuTemp);
+    }
+
+    /// <summary>Gets a missing value back without the user pressing "Refresh sensor list" or restarting.</summary>
+    void Recover(double gpuTemp)
+    {
+        // After a driver update or a driver reset the adapter handles answer nothing: enumerate the GPUs again.
+        // Without a GPU that reports a temperature this repeats once a minute, which costs well under 1 ms.
+        if (_gpuRetry.Due(double.IsNaN(gpuTemp)))
+            BuildCatalog();
+
+        bool noCpuTemp = _catalog.Options[(int)Metric.CpuTemp].Length == 0;
+        if (!noCpuTemp)
+            _cpuReopens = 0;
+        // Reopening takes up to a few hundred ms, so only while the driver is there and only a few times.
+        if (_cpuRetry.Due(noCpuTemp) && _cpuReopens < MaxCpuReopens && PawnIoInstalled())
+        {
+            _cpuReopens++;
+            Reopen();
+        }
+    }
+
+    /// <summary>Paces attempts to recover a missing value: the first after a grace period, then at a fixed interval.</summary>
+    struct Retry(int firstMs, int everyMs)
+    {
+        long _at;
+
+        /// <summary>Called once per tick; true when another attempt is due. Resets as soon as nothing is missing.</summary>
+        public bool Due(bool missing)
+        {
+            long now = Environment.TickCount64;
+            if (!missing)
+                _at = 0;
+            else if (_at == 0)
+                _at = now + firstMs;
+            else if (now >= _at)
+            {
+                _at = now + everyMs;
+                return true;
+            }
+            return false;
+        }
     }
 
     static double Read(SensorOption? option) => option?.Read() ?? double.NaN;
