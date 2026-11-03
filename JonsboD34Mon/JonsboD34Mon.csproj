@@ -9,7 +9,6 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>JonsboD34Mon</AssemblyName>
     <RootNamespace>JonsboD34Mon</RootNamespace>
-    <Version>1.1.1</Version>
     <Product>Jonsbo D34 Mon</Product>
 
     <PlatformTarget>x64</PlatformTarget>

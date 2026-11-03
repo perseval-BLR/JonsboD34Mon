@@ -1,8 +1,8 @@
 # Builds Jonsbo D34 Mon and its installers.
 #   powershell -ExecutionPolicy Bypass -File build.ps1 [-Version 1.0.0] [-Dotnet path\to\dotnet.exe]
-# Output: dist\ — "Jonsbo D34 Mon <version> (ru).msi" and "(en).msi".
+# Output: dist\ — Jonsbo.D34.Mon.<version>.ru.msi / .en.msi, .portable.zip and SHA256SUMS.txt.
 param(
-    [string]$Version = '1.1.1',
+    [string]$Version = '',    # default: the one in Directory.Build.props
     [string]$Dotnet = 'dotnet'
 )
 $ErrorActionPreference = 'Stop'
@@ -10,6 +10,7 @@ $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_NOLOGO = '1'
 
 $root = $PSScriptRoot
+if (-not $Version) { $Version = ([xml](Get-Content "$root\Directory.Build.props")).Project.PropertyGroup.Version }
 $app = Join-Path $env:TEMP 'jd34-publish'
 $dist = Join-Path $root 'dist'
 
@@ -43,7 +44,7 @@ if ($LASTEXITCODE) { throw 'installer build failed' }
 
 New-Item -ItemType Directory -Force $dist | Out-Null
 foreach ($c in @{ 'ru-RU' = 'ru'; 'en-US' = 'en' }.GetEnumerator()) {
-    Copy-Item "$root\Installer\bin\Release\$($c.Key)\JonsboD34Mon.msi" (Join-Path $dist "Jonsbo D34 Mon $Version ($($c.Value)).msi") -Force
+    Copy-Item "$root\Installer\bin\Release\$($c.Key)\JonsboD34Mon.msi" (Join-Path $dist "Jonsbo.D34.Mon.$Version.$($c.Value).msi") -Force
 }
 
 # 4. Portable zip: the same exe + portable marker (settings next to the exe) + PawnIO setup + licenses.
@@ -54,7 +55,7 @@ Copy-Item "$app\JonsboD34Mon.exe", "$root\Portable\JonsboD34Mon.portable", "$roo
           "$root\Installer\redist\PawnIO_setup.exe", "$root\THIRD-PARTY-NOTICES.md",
           "$root\JonsboD34Mon\Assets\DSEG-LICENSE.txt" $port
 Copy-Item "$root\LICENSE" "$port\LICENSE.txt"
-$zip = Join-Path $dist "Jonsbo D34 Mon $Version portable.zip"
+$zip = Join-Path $dist "Jonsbo.D34.Mon.$Version.portable.zip"
 if (Test-Path $zip) { Remove-Item $zip }
 Compress-Archive -Path $port -DestinationPath $zip -CompressionLevel Optimal
 

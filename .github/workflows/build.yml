@@ -1,0 +1,49 @@
+# Builds the MSIs, the portable zip and checksums with build.ps1.
+# Every push and manual run keeps them as a workflow artifact; a v* tag also opens a draft release
+# with the files attached, to be reviewed and published by hand.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # draft release on tags
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/*.msi
+            dist/*.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          gh release create $tag (Get-ChildItem dist -File | Where-Object Extension -in '.msi', '.zip', '.txt').FullName `
+            --draft --title "Jonsbo D34 Mon $($tag.TrimStart('v'))" --notes "Built by CI from $tag. Release notes to be written."
