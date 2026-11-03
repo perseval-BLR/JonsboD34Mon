@@ -38,6 +38,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The gen0 budget is sized from the L3 cache: ~76 MB on a 96 MB X3D part, so the few KB/s the sensor
+         library allocates would pile up for an hour before the first collection. 4 MB keeps private memory
+         flat; a gen0 collection of this tiny heap takes well under a millisecond. -->
+    <RuntimeHostConfigurationOption Include="System.GC.Gen0MaxBudget" Value="4194304" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="Assets\DSEG7Classic-Bold.ttf" LogicalName="seg.ttf" />
   </ItemGroup>
 

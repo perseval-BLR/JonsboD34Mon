@@ -36,8 +36,7 @@ internal sealed class SensorCatalog
             if (cores.Length > 0)
             {
                 string prefix = cpus.Count > 1 ? cpu.Identifier + ":" : "";
-                clocks.Add(new(prefix + "cores:max", "Highest core clock", cpu.Name,
-                               () => cores.Select(c => c.Value ?? float.NaN).Where(v => !float.IsNaN(v)).DefaultIfEmpty(float.NaN).Max()));
+                clocks.Add(new(prefix + "cores:max", "Highest core clock", cpu.Name, () => Max(cores)));
             }
             clocks.AddRange(sensors.Where(s => s.SensorType == SensorType.Clock && !s.Name.StartsWith("Bus", StringComparison.Ordinal))
                                    .Select(s => Option(s, cpu)));
@@ -47,6 +46,18 @@ internal sealed class SensorCatalog
         Options[(int)Metric.CpuFreq] = [.. clocks];
         Options[(int)Metric.GpuTemp] = gpus.Select((a, i) =>
             new SensorOption($"gpu:{a.Name}#{gpus.Take(i).Count(b => b.Name == a.Name)}", a.Name, "", () => GpuTemp.Read(a.Handle))).ToArray();
+    }
+
+    /// <summary>Highest value among the sensors, NaN when none has one. A plain loop: it runs every second.</summary>
+    static double Max(ISensor[] sensors)
+    {
+        double max = double.NaN;
+        foreach (var s in sensors)
+        {
+            if (s.Value is float v && !float.IsNaN(v) && (double.IsNaN(max) || v > max))
+                max = v;
+        }
+        return max;
     }
 
     static SensorOption Option(ISensor s, IHardware hw) =>

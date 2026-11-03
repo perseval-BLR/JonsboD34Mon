@@ -20,7 +20,11 @@ internal sealed class Settings
     public readonly string[] Sensors = ["", "", "", ""];
     public volatile bool Fahrenheit;
     public volatile bool ScreenOn = true;
+    /// <summary>Blank the case screen while Windows has the monitors turned off.</summary>
+    public volatile bool FollowDisplay = true;
     public bool Autostart;
+    /// <summary>The exe the logon task was last pointed at; the task is re-registered only when this changes.</summary>
+    public volatile string AutostartExe = "";
     public bool DarkTheme = true;
     public bool English = L.SystemPrefersEnglish();
     public bool FirstRun { get; private set; }
@@ -49,7 +53,9 @@ internal sealed class Settings
                     case "CpuFreq": s.Sensors[3] = value; break;
                     case "Fahrenheit": s.Fahrenheit = value == "1"; break;
                     case "ScreenOn": s.ScreenOn = value != "0"; break;
+                    case "FollowDisplay": s.FollowDisplay = value != "0"; break;
                     case "Autostart": s.Autostart = value == "1"; break;
+                    case "AutostartExe": s.AutostartExe = value; break;
                     case "Theme": s.DarkTheme = value != "light"; break;
                     case "Language": s.English = value == "en"; break;
                 }
@@ -60,8 +66,12 @@ internal sealed class Settings
         return s;
     }
 
+    readonly Lock _saving = new();
+
+    /// <summary>Thread-safe: the autostart check saves from the thread pool.</summary>
     public void Save()
     {
+        lock (_saving)
         try
         {
             Directory.CreateDirectory(Dir);
@@ -69,7 +79,8 @@ internal sealed class Settings
             string temp = FilePath + ".tmp";
             File.WriteAllText(temp,
                 $"CpuTemp={Sensors[0]}\nGpuTemp={Sensors[1]}\nCpuUsage={Sensors[2]}\nCpuFreq={Sensors[3]}\n" +
-                $"Fahrenheit={(Fahrenheit ? 1 : 0)}\nScreenOn={(ScreenOn ? 1 : 0)}\nAutostart={(Autostart ? 1 : 0)}\n" +
+                $"Fahrenheit={(Fahrenheit ? 1 : 0)}\nScreenOn={(ScreenOn ? 1 : 0)}\nFollowDisplay={(FollowDisplay ? 1 : 0)}\n" +
+                $"Autostart={(Autostart ? 1 : 0)}\nAutostartExe={AutostartExe}\n" +
                 $"Theme={(DarkTheme ? "dark" : "light")}\nLanguage={(English ? "en" : "ru")}\n");
             File.Move(temp, FilePath, overwrite: true);
         }
@@ -86,6 +97,8 @@ internal static class Autostart
 {
     const string TaskName = "JonsboD34Mon";
 
+    public static string ExePath => Environment.ProcessPath ?? Application.ExecutablePath;
+
     public static bool Set(bool enable, out string error)
     {
         error = "";
@@ -93,7 +106,7 @@ internal static class Autostart
             return RunSchtasks($"/Delete /TN {TaskName} /F", out error) || !Exists();
 
         string user = WindowsIdentity.GetCurrent().Name;
-        string exe = Environment.ProcessPath ?? Application.ExecutablePath;
+        string exe = ExePath;
         string xml = $"""
             <?xml version="1.0" encoding="UTF-16"?>
             <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">

@@ -16,6 +16,7 @@ internal static class L
     public static string Screen => T("Экран", "Screen");
     public static string Open => T("Открыть", "Open");
     public static string ShowOnScreen => T("Показ на экране", "Show on screen");
+    public static string FollowDisplay => T("Гасить вместе с монитором", "Turn off with the monitor");
     public static string Fahrenheit => T("Фаренгейты", "Fahrenheit");
     public static string Exit => T("Выход", "Exit");
     public static string Quit => T("Выгрузить из памяти", "Quit and unload");

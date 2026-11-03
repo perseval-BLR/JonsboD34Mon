@@ -61,6 +61,9 @@ internal sealed class SensorMonitor : IDisposable
 
     public volatile Snapshot Current = Snapshot.Starting;
 
+    /// <summary>Windows has turned the monitors off; with <see cref="Settings.FollowDisplay"/> the case screen goes off too.</summary>
+    public volatile bool DisplayOff;
+
     /// <summary>While true (window open), every option's value is read too.</summary>
     public volatile bool Detailed;
 
@@ -100,7 +103,7 @@ internal sealed class SensorMonitor : IDisposable
         {
             try
             {
-                if (_settings.ScreenOn)
+                if (_settings.ScreenOn && !(DisplayOff && _settings.FollowDisplay))
                 {
                     CaseDisplay.BuildPacket(_packet, Current, DateTime.Now, _settings.Fahrenheit);
                     _display.Send(_packet);
@@ -122,7 +125,7 @@ internal sealed class SensorMonitor : IDisposable
 
         try
         {
-            if (_settings.ScreenOn)
+            if (!offSent)
             {
                 CaseDisplay.BuildOffPacket(_packet);
                 _display.Send(_packet);

@@ -46,17 +46,26 @@ internal static class SensorProbe
             log.AppendLine($"{(Metric)m}: {cat.Options[m].Length} options, default = {o?.Title} = {o?.Read():F1}");
         }
 
-        for (int i = 0; i < 5; i++)
+        // Thread CPU time advances in scheduler ticks (~15.6 ms), far coarser than one update:
+        // per tick only wall time is meaningful, CPU time is summed over all ticks.
+        const int Ticks = 10;
+        long cpuTotal = 0;
+        for (int i = 0; i < Ticks; i++)
         {
             Thread.Sleep(1000);
             long c0 = CpuTicks(), w0 = Stopwatch.GetTimestamp();
             foreach (var cpu in cpus)
                 cpu.Update();
             var vals = Enumerable.Range(0, 4).Select(m => cat.Resolve((Metric)m, "")?.Read() ?? double.NaN).ToArray();
-            log.AppendLine($"tick {i}: wall {Stopwatch.GetElapsedTime(w0).TotalMilliseconds:F1} ms, cpu {(CpuTicks() - c0) / 10000.0:F1} ms | " +
+            cpuTotal += CpuTicks() - c0;
+            log.AppendLine($"tick {i}: wall {Stopwatch.GetElapsedTime(w0).TotalMilliseconds:F1} ms | " +
                            $"cpuT={vals[0]:F1} gpuT={vals[1]:F1} cpuU={vals[2]:F1} cpuF={vals[3]:F0}");
         }
+        log.AppendLine($"cpu over {Ticks} ticks: {cpuTotal / 10000.0:F0} ms = {cpuTotal / 10000.0 / Ticks / 10:F2} % of one core");
         Mem("end");
+        // The settings the GC actually runs with (gen0 budget, heap limits): explains how memory grows over time.
+        log.AppendLine("gc: " + string.Join(", ", GC.GetConfigurationVariables().Select(kv => $"{kv.Key}={kv.Value}")) +
+                       $", gen0 collections {GC.CollectionCount(0)}");
         computer.Close();
         File.WriteAllText(file, log.ToString());
         return 0;

@@ -171,6 +171,20 @@ internal sealed class MainForm : Form
                    (IdScreen, L.Screen, _settings.ScreenOn));
         QuitButton(548);
 
+        if (_keyboard && _focus >= 0)
+        {
+            int focused = FocusOrder[_focus];
+            foreach (var (rect, id) in _hits)
+            {
+                if (id != focused)
+                    continue;
+                var r = RectangleF.Inflate(rect, 2, 2);
+                using var path = AppIcon.RoundRect(r, 8);
+                g.DrawPath(t.Pen(t.Accent, 1.5f), path);
+                break;
+            }
+        }
+
         g.ResetTransform();
         g.SmoothingMode = SmoothingMode.None;
         g.DrawRectangle(t.Pen(t.Border), 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
@@ -330,12 +344,54 @@ internal sealed class MainForm : Form
             return;
 
         int id = HitTest(e.Location);
+        if (id == -1)
+        {
+            // Drag the window by any empty spot.
+            Native.ReleaseCapture();
+            Native.SendMessageW(Handle, Native.WM_NCLBUTTONDOWN, Native.HTCAPTION, 0);
+            return;
+        }
+        _keyboard = false; // focus ring only while the keyboard is in use, like Windows itself
+        Activate(id);
+    }
+
+    // ---- Keyboard: Tab / Shift+Tab / arrows move the focus, Enter or Space presses -------------------------
+
+    /// <summary>Focus order: the four values, the toggles, quit, then the header buttons. Gears repeat the values.</summary>
+    static readonly int[] FocusOrder =
+        [IdMetric, IdMetric + 1, IdMetric + 2, IdMetric + 3, IdUnit, IdAutostart, IdScreen, IdQuit, IdLanguage, IdTheme, IdMinimize];
+
+    int _focus = -1;    // index into FocusOrder
+    bool _keyboard;     // draw the focus ring
+
+    protected override bool ProcessDialogKey(Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.Tab or Keys.Down or Keys.Right:
+                MoveFocus(+1);
+                return true;
+            case Keys.Shift | Keys.Tab or Keys.Up or Keys.Left:
+                MoveFocus(-1);
+                return true;
+            case Keys.Enter or Keys.Space when _focus >= 0:
+                Activate(FocusOrder[_focus]);
+                return true;
+        }
+        return base.ProcessDialogKey(keyData);
+    }
+
+    void MoveFocus(int step)
+    {
+        _keyboard = true;
+        _focus = _focus < 0 ? (step > 0 ? 0 : FocusOrder.Length - 1) : (_focus + step + FocusOrder.Length) % FocusOrder.Length;
+        Invalidate();
+    }
+
+    void Activate(int id)
+    {
         switch (id)
         {
-            case -1: // drag the window by any empty spot
-                Native.ReleaseCapture();
-                Native.SendMessageW(Handle, Native.WM_NCLBUTTONDOWN, Native.HTCAPTION, 0);
-                break;
             case IdMinimize:
                 Close();
                 break;
@@ -391,6 +447,7 @@ internal sealed class MainForm : Form
         if (ok)
         {
             _settings.Autostart = want;
+            _settings.AutostartExe = want ? Autostart.ExePath : "";
             _settings.Save();
         }
         else
