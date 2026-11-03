@@ -81,14 +81,6 @@ internal static unsafe class Native
     [DllImport("user32")]
     public static extern bool DestroyIcon(nint icon);
 
-    [DllImport("user32")]
-    public static extern nint RegisterPowerSettingNotification(nint recipient, ref Guid powerSetting, int flags);
-
-    [DllImport("user32")]
-    public static extern bool UnregisterPowerSettingNotification(nint handle);
-
-    public const int DEVICE_NOTIFY_WINDOW_HANDLE = 0;
-
     [DllImport("dwmapi")]
     public static extern int DwmSetWindowAttribute(nint hwnd, int attribute, ref int value, int size);
 

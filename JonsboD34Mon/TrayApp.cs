@@ -9,10 +9,9 @@ internal sealed class TrayApp : ApplicationContext
     readonly SensorMonitor _monitor;
     readonly NotifyIcon _tray;
     readonly ContextMenuStrip _menu;
-    readonly ToolStripMenuItem _screenItem, _followItem, _unitItem;
+    readonly ToolStripMenuItem _screenItem, _unitItem;
     readonly Icon _icon;
     readonly Control _ui = new(); // marshals calls from other threads onto the UI thread
-    readonly DisplayWatcher _display;
     MainForm? _form;
 
     public TrayApp(EventWaitHandle showRequest)
@@ -25,21 +24,17 @@ internal sealed class TrayApp : ApplicationContext
         _menu = new ContextMenuStrip { Renderer = Theme().CreateMenuRenderer(), ShowImageMargin = false, ShowCheckMargin = true };
         var openItem = new ToolStripMenuItem("", null, (_, _) => ShowWindow());
         _screenItem = new ToolStripMenuItem("", null, (_, _) => Changed(_settings.ScreenOn = !_settings.ScreenOn));
-        _followItem = new ToolStripMenuItem("", null, (_, _) => Changed(_settings.FollowDisplay = !_settings.FollowDisplay));
         _unitItem = new ToolStripMenuItem("", null, (_, _) => Changed(_settings.Fahrenheit = !_settings.Fahrenheit));
         var exitItem = new ToolStripMenuItem("", null, (_, _) => Exit());
-        _menu.Items.AddRange([openItem, _screenItem, _followItem, _unitItem, new ToolStripSeparator(), exitItem]);
+        _menu.Items.AddRange([openItem, _screenItem, _unitItem, new ToolStripSeparator(), exitItem]);
         // Texts and checks are filled in on every opening, so language changes need no extra wiring.
         _menu.Opening += (_, _) =>
         {
             openItem.Text = L.Open;
             _screenItem.Text = L.ShowOnScreen;
-            _followItem.Text = L.FollowDisplay;
             _unitItem.Text = L.Fahrenheit;
             exitItem.Text = L.Exit;
             _screenItem.Checked = _settings.ScreenOn;
-            _followItem.Checked = _settings.FollowDisplay;
-            _followItem.Enabled = _settings.ScreenOn;
             _unitItem.Checked = _settings.Fahrenheit;
         };
 
@@ -61,12 +56,6 @@ internal sealed class TrayApp : ApplicationContext
         SystemEvents.SessionEnded += OnSessionEnded;
         // DateTime.Now caches the time zone; refresh it so the clock on the screen follows a zone change.
         SystemEvents.TimeChanged += OnTimeChanged;
-        // Windows reports the current state right after subscribing, so this also covers a start with monitors off.
-        _display = new DisplayWatcher(on =>
-        {
-            _monitor.DisplayOff = !on;
-            _monitor.Poke();
-        });
 
         _monitor.Start();
         if (_settings.FirstRun)
@@ -155,7 +144,6 @@ internal sealed class TrayApp : ApplicationContext
             _showWait.Unregister(null);
             SystemEvents.SessionEnded -= OnSessionEnded;
             SystemEvents.TimeChanged -= OnTimeChanged;
-            _display.Dispose();
             _monitor.Dispose();
             _tray.Dispose();
             _menu.Dispose();

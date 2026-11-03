@@ -77,7 +77,6 @@ As it is, no sugar-coating:
 - **Screen:** a plain HID device `VID_5131&PID_2007`, 64-byte packets via the Windows HID API. The protocol is described in [`CaseDisplay.cs`](JonsboD34Mon/CaseDisplay.cs).
 - Two background threads: sensors once a second, screen updates every 250 ms. The window is custom-drawn and only exists while it's open.
 - **Self-recovery:** an error in a background thread is written to `error.log` and the thread keeps going; a GPU that stops answering (driver update or reset) is looked up again after 10 s; if PawnIO is installed or started while the app runs, CPU temperatures come back without a restart.
-- **Monitor off → screen off:** while Windows has the monitors turned off, the case screen is off too (tray menu → *Turn off with the monitor*).
 - **Keyboard:** Tab / arrows move between the window's buttons, Enter or Space presses, Esc hides the window.
 
 **Build:** .NET 10 SDK, then `powershell -ExecutionPolicy Bypass -File build.ps1`. Output goes to `dist\`; the version comes from [`Directory.Build.props`](Directory.Build.props). GitHub Actions runs the same script on every push and opens a draft release for a `v*` tag.
@@ -95,5 +94,5 @@ Code: [MIT](LICENSE). Third-party components and their licenses: [THIRD-PARTY-NO
 - **Было → стало:** 15–19 % одного ядра → 0,55 %, ~75 МБ → ~16 МБ памяти, утечка дескрипторов (+5 в секунду) → стабильно ~410.
 - **Установка:** со страницы [Releases](../../releases) скачайте `Jonsbo.D34.Mon.<версия>.ru.msi` или `portable.zip`. .NET встроен, драйвер датчиков PawnIO установщик поставит сам. В окне включите «Автозапуск» и **отключите автозапуск старого PC Monitor All**, иначе экран будет мигать. Установщик не подписан: «Подробнее» → «Выполнить в любом случае».
 - **Риски:** используется драйвер ядра PawnIO (подписанный, открытый); античиты в онлайн-играх могут на него реагировать; программа работает с правами администратора; протокол экрана восстановлен по оригиналу; Intel, видеокарты AMD/Intel и другие экраны JONSBO не проверялись. Подробности в разделе [Risks and limitations](#risks-and-limitations).
-- Сама восстанавливается после сброса драйвера видеокарты и установки PawnIO, гасит экран корпуса вместе с монитором (меню в трее), окном можно управлять с клавиатуры.
+- Сама восстанавливается после сброса драйвера видеокарты и установки PawnIO, окном можно управлять с клавиатуры.
 - Нет автообновлений, телеметрии и доступа в сеть. Код под лицензией MIT.

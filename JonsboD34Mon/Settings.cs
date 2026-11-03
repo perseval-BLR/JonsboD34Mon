@@ -20,8 +20,6 @@ internal sealed class Settings
     public readonly string[] Sensors = ["", "", "", ""];
     public volatile bool Fahrenheit;
     public volatile bool ScreenOn = true;
-    /// <summary>Blank the case screen while Windows has the monitors turned off.</summary>
-    public volatile bool FollowDisplay = true;
     public bool Autostart;
     /// <summary>The exe the logon task was last pointed at; the task is re-registered only when this changes.</summary>
     public volatile string AutostartExe = "";
@@ -53,7 +51,6 @@ internal sealed class Settings
                     case "CpuFreq": s.Sensors[3] = value; break;
                     case "Fahrenheit": s.Fahrenheit = value == "1"; break;
                     case "ScreenOn": s.ScreenOn = value != "0"; break;
-                    case "FollowDisplay": s.FollowDisplay = value != "0"; break;
                     case "Autostart": s.Autostart = value == "1"; break;
                     case "AutostartExe": s.AutostartExe = value; break;
                     case "Theme": s.DarkTheme = value != "light"; break;
@@ -79,7 +76,7 @@ internal sealed class Settings
             string temp = FilePath + ".tmp";
             File.WriteAllText(temp,
                 $"CpuTemp={Sensors[0]}\nGpuTemp={Sensors[1]}\nCpuUsage={Sensors[2]}\nCpuFreq={Sensors[3]}\n" +
-                $"Fahrenheit={(Fahrenheit ? 1 : 0)}\nScreenOn={(ScreenOn ? 1 : 0)}\nFollowDisplay={(FollowDisplay ? 1 : 0)}\n" +
+                $"Fahrenheit={(Fahrenheit ? 1 : 0)}\nScreenOn={(ScreenOn ? 1 : 0)}\n" +
                 $"Autostart={(Autostart ? 1 : 0)}\nAutostartExe={AutostartExe}\n" +
                 $"Theme={(DarkTheme ? "dark" : "light")}\nLanguage={(English ? "en" : "ru")}\n");
             File.Move(temp, FilePath, overwrite: true);
