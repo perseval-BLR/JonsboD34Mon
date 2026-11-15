@@ -43,7 +43,10 @@ internal sealed class SensorMonitor : IDisposable
     string? _error, _sensorLastError;
     readonly SensorOption?[] _selected = new SensorOption?[4];
     // GPU handles go stale after a driver update or reset; CPU temperatures appear only once PawnIO runs.
-    Retry _gpuRetry = new(firstMs: 10_000, everyMs: 60_000), _cpuRetry = new(firstMs: 30_000, everyMs: 60_000);
+    Retry _gpuRetry = new(firstMs: 10_000, everyMs: 60_000), _cpuRetry = new(firstMs: 30_000, everyMs: 60_000),
+          // After the quick attempts run out, one rare try forever: PawnIO can be installed, started or let through
+          // by security software long after we started, and the screen must recover without a restart.
+          _cpuSlowRetry = new(firstMs: 600_000, everyMs: 600_000);
     int _cpuReopens;
 
     volatile bool _stop, _rescan, _reselect = true, _screenConnected;
@@ -259,12 +262,20 @@ internal sealed class SensorMonitor : IDisposable
 
         bool noCpuTemp = _catalog.Options[(int)Metric.CpuTemp].Length == 0;
         if (!noCpuTemp)
-            _cpuReopens = 0;
-        // Reopening takes up to a few hundred ms, so only while the driver is there and only a few times.
-        if (_cpuRetry.Due(noCpuTemp) && _cpuReopens < MaxCpuReopens && PawnIoInstalled())
         {
-            _cpuReopens++;
-            Reopen();
+            _cpuReopens = 0;
+            _cpuRetry.Due(false);
+            _cpuSlowRetry.Due(false);
+        }
+        else if (PawnIoInstalled()) // reopening takes up to a few hundred ms: never without the driver
+        {
+            // Five quick attempts a minute apart, then one every ten minutes for as long as we run.
+            bool due = _cpuReopens < MaxCpuReopens ? _cpuRetry.Due(true) : _cpuSlowRetry.Due(true);
+            if (due)
+            {
+                _cpuReopens++;
+                Reopen();
+            }
         }
     }
 

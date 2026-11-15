@@ -79,6 +79,7 @@ internal sealed class MainForm : Form
     {
         base.OnDpiChanged(e);
         ApplySize();
+        KeepOnScreen(); // another scale means another size: the fixed-size card can end up past the edge
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -91,6 +92,17 @@ internal sealed class MainForm : Form
         ApplySize();
         var area = Screen.FromPoint(Cursor.Position).WorkingArea;
         Location = new Point(area.Right - Width - 12, area.Bottom - Height - 12);
+        KeepOnScreen();
+    }
+
+    /// <summary>Pulls the window inside the working area (the 592-px card is 888 px at 150 %).</summary>
+    void KeepOnScreen()
+    {
+        var area = Screen.FromControl(this).WorkingArea;
+        int x = Math.Clamp(Location.X, area.Left, Math.Max(area.Left, area.Right - Width));
+        int y = Math.Clamp(Location.Y, area.Top, Math.Max(area.Top, area.Bottom - Height));
+        if (x != Location.X || y != Location.Y)
+            Location = new Point(x, y);
     }
 
     void OnMonitorUpdated()
@@ -315,6 +327,15 @@ internal sealed class MainForm : Form
         return -1;
     }
 
+    /// <summary>The rectangle a hit-test id had in the last paint, if it was drawn then.</summary>
+    RectangleF? Hit(int id)
+    {
+        foreach (var (rect, hitId) in _hits)
+            if (hitId == id)
+                return rect;
+        return null;
+    }
+
     protected override void OnMouseMove(MouseEventArgs e)
     {
         int id = HitTest(e.Location);
@@ -423,14 +444,16 @@ internal sealed class MainForm : Form
                 break;
             case >= IdMetric and < IdMetric + 4:
             {
-                var r = _hits.First(h => h.Id == id).Rect;
+                if (Hit(id) is not RectangleF r)
+                    break; // not painted yet: there is no button to press
                 ShowSensorMenu((Metric)(id - IdMetric), new Point((int)(r.Left * Zoom), (int)(r.Bottom * Zoom)), ToolStripDropDownDirection.BelowRight);
                 break;
             }
             case >= IdGear and < IdGear + 4:
             {
+                if (Hit(id) is not RectangleF r)
+                    break;
                 // Opens leftwards from the gear so the (wide) list stays inside the window's screen.
-                var r = _hits.First(h => h.Id == id).Rect;
                 ShowSensorMenu((Metric)(id - IdGear), new Point((int)(r.Right * Zoom), (int)(r.Bottom * Zoom)), ToolStripDropDownDirection.BelowLeft);
                 break;
             }

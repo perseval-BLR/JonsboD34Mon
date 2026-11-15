@@ -1,6 +1,11 @@
 ﻿using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
+// Every P/Invoke here targets a Windows system DLL, so only System32 is searched. Otherwise a DLL planted next
+// to the exe (the portable copy lives in a folder the user can write to) would be loaded into this process,
+// which runs elevated.
+[assembly: DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+
 namespace JonsboD34Mon;
 
 internal static unsafe class Native

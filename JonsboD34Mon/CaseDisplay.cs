@@ -10,7 +10,6 @@ namespace JonsboD34Mon;
 internal sealed unsafe class CaseDisplay : IDisposable
 {
     const string DeviceId = "vid_5131&pid_2007";
-    const int PayloadSize = 64;
     const int RetryMs = 3000;
 
     sealed class Device(SafeFileHandle handle, int reportLength) : IDisposable
@@ -28,19 +27,22 @@ internal sealed unsafe class CaseDisplay : IDisposable
 
     readonly List<Device> _devices = [];
     long _nextAttempt;
+    bool _needOpen = true;   // screen thread only: at start, and after a screen dropped out
 
     public bool IsConnected => _devices.Count > 0;
 
-    /// <summary>Sends a 64-byte payload to every connected screen; reconnects at most every 3 s when none is open.</summary>
+    /// <summary>Sends a 64-byte payload to every connected screen; reconnects at most every 3 s when one is missing.</summary>
     public bool Send(ReadOnlySpan<byte> payload)
     {
-        if (_devices.Count == 0)
+        if (_needOpen)
         {
             long now = Environment.TickCount64;
             if (now < _nextAttempt)
                 return false;
             _nextAttempt = now + RetryMs;
             Open();
+            // Nothing there yet: try again once the interval is over, without enumerating on every packet.
+            _needOpen = _devices.Count == 0;
         }
 
         bool sent = false;
@@ -55,6 +57,9 @@ internal sealed unsafe class CaseDisplay : IDisposable
                 _devices[i].Dispose();
                 _devices.RemoveAt(i);
                 // A screen that just worked is usually back at once (USB hiccup, resume): don't wait 3 s.
+                // Remembering the failure is also what brings it back when other screens are still working,
+                // which a "list is empty" test would never notice.
+                _needOpen = true;
                 _nextAttempt = 0;
             }
         }

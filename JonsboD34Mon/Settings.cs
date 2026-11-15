@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics;
+using System.Net;
 using System.Security;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace JonsboD34Mon;
 
@@ -129,15 +131,48 @@ internal static class Autostart
               </Actions>
             </Task>
             """;
-        string file = Path.Combine(Path.GetTempPath(), "JonsboD34Mon-task.xml");
+        string file = Path.Combine(Path.GetTempPath(), $"JonsboD34Mon-task-{Guid.NewGuid():N}.xml");
         try
         {
             File.WriteAllText(file, xml, Encoding.Unicode);
-            return RunSchtasks($"/Create /TN {TaskName} /XML \"{file}\" /F", out error);
+            if (!RunSchtasks($"/Create /TN {TaskName} /XML \"{file}\" /F", out error))
+                return false;
+            // schtasks imports that file with full rights: a file swapped on its way in would install someone
+            // else's task. So look at what the scheduler actually stored, and undo it if it isn't ours.
+            if (RunsThisExe(out error))
+                return true;
+            if (error.Length == 0)
+                error = "the task was created for another program";
+            RunSchtasks($"/Delete /TN {TaskName} /F", out _);
+            return false;
         }
         finally
         {
-            try { File.Delete(file); } catch (IOException) { }
+            try { File.Delete(file); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Reads the stored task and checks that its single action runs this exe.</summary>
+    static bool RunsThisExe(out string error)
+    {
+        error = "";
+        // The scheduler keeps every task as UTF-16 XML under %SystemRoot%\System32\Tasks.
+        string path = Path.Combine(Environment.SystemDirectory, "Tasks", TaskName);
+        try
+        {
+            var commands = Regex.Matches(File.ReadAllText(path, Encoding.Unicode), "<Command>(.*?)</Command>");
+            string exe = commands.Count == 1 ? WebUtility.HtmlDecode(commands[0].Groups[1].Value) : "";
+            if (commands.Count == 1 && string.Equals(exe, ExePath, StringComparison.OrdinalIgnoreCase))
+                return true;
+            error = commands.Count == 1 ? $"the task runs \"{exe}\"" : $"the task has {commands.Count} actions";
+            return false;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            error = e.Message;
+            return false;
         }
     }
 

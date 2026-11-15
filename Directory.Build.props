@@ -1,6 +1,6 @@
 <Project>
   <!-- The one place the version lives: the app, the MSI and build.ps1 all read it from here. -->
   <PropertyGroup>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
   </PropertyGroup>
 </Project>

@@ -27,7 +27,15 @@ jobs:
 
       - name: Build
         shell: pwsh
-        run: ./build.ps1
+        run: |
+          # A v* tag is the version of the release: pass it on, or the MSI keeps whatever
+          # Directory.Build.props says and the files don't match the release they are attached to.
+          if ('${{ github.ref_type }}' -eq 'tag') {
+            $version = '${{ github.ref_name }}'.TrimStart('v')
+            ./build.ps1 -Version $version
+          } else {
+            ./build.ps1
+          }
 
       - uses: actions/upload-artifact@v4
         with:
