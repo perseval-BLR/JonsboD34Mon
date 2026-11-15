@@ -63,12 +63,17 @@ internal sealed class TrayApp : ApplicationContext
             _settings.Save();
             ShowWindow();
         }
-        else if (_settings.Autostart && !string.Equals(_settings.AutostartExe, Autostart.ExePath, StringComparison.OrdinalIgnoreCase))
+        else if (_settings.Autostart)
         {
-            // The program was moved or reinstalled elsewhere (or set up by 1.1.1, which didn't record the path):
-            // re-point the logon task at this exe. Not on every start: schtasks is a process launch per logon.
+            // The scheduler is the source of truth, not our own record: the exe may have moved (portable copy,
+            // installed elsewhere) and the task itself may be gone (uninstall, Task Scheduler cleanup, a system
+            // tool). Both are checked in the background: schtasks is a process launch per logon, and the window
+            // must not wait for it.
             ThreadPool.QueueUserWorkItem(_ =>
             {
+                if (string.Equals(_settings.AutostartExe, Autostart.ExePath, StringComparison.OrdinalIgnoreCase)
+                    && Autostart.Exists())
+                    return;
                 if (Autostart.Set(true, out string _))
                 {
                     _settings.AutostartExe = Autostart.ExePath;
