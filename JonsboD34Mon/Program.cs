@@ -24,7 +24,7 @@ internal static class Program
             }
             else
             {
-                L.En = Settings.Load().English;
+                L.Lang = Settings.Load().Lang;
                 MessageBox.Show(L.RunningForAnotherUser, "Jonsbo D34 Mon", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             return 0;

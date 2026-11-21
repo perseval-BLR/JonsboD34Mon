@@ -17,12 +17,14 @@
 
     <!--
       PawnIO: the signed kernel driver LibreHardwareMonitor uses to read CPU temperatures and clocks
-      (https://pawnio.eu, GPL-2.0). Its official setup is embedded and run silently only when the driver
+      (https://pawnio.eu, GPL-2.0). Its official setup is embedded and run silently only when PawnIO
       isn't installed yet. It is shared with other monitoring tools, so uninstalling us leaves it in place.
+      "Installed" means its own uninstall entry, not the driver service: another program can register just the
+      driver without PawnIOLib.dll, which LibreHardwareMonitor needs, and every CPU reading then comes back as 0.
     -->
     <Property Id="PAWNIO_INSTALLED" Secure="yes">
-      <RegistrySearch Id="PawnIOService" Root="HKLM" Key="SYSTEM\CurrentControlSet\Services\PawnIO"
-                      Name="ImagePath" Type="raw" Bitness="always64" />
+      <RegistrySearch Id="PawnIOSetup" Root="HKLM" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO"
+                      Name="InstallLocation" Type="raw" Bitness="always64" />
     </Property>
     <Binary Id="PawnIOSetup" SourceFile="redist\PawnIO_setup.exe" />
     <!-- Not fatal if it fails: the app still runs and says the CPU temperature needs PawnIO. -->
