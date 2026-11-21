@@ -12,3 +12,10 @@ Third-party components:
 • PawnIO — signed driver for sensor access. GPL-2.0, © namazso. pawnio.eu. Installed if missing; kept after uninstalling this program (other programs may use it).
 • .NET Runtime — © Microsoft, MIT.
 • DSEG7 Classic font — © keshikan, SIL Open Font License 1.1.
+
+Logiciel libre et gratuit (licence MIT) pour l'écran du boîtier JONSBO D34. Fourni « tel quel », sans garantie d'aucune sorte. Sans lien avec JONSBO.
+Composants tiers :
+• LibreHardwareMonitor — lecture des capteurs du processeur. MPL-2.0. github.com/LibreHardwareMonitor/LibreHardwareMonitor
+• PawnIO — pilote signé d'accès aux capteurs. GPL-2.0, © namazso. pawnio.eu. Installé s'il est absent ; conservé après la désinstallation de ce programme (d'autres programmes peuvent l'utiliser).
+• .NET Runtime — © Microsoft, MIT.
+• Police DSEG7 Classic — © keshikan, SIL Open Font License 1.1.

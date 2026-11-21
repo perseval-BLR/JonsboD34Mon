@@ -9,7 +9,7 @@
   <PropertyGroup>
     <OutputName>JonsboD34Mon</OutputName>
     <InstallerPlatform>x64</InstallerPlatform>
-    <Cultures>ru-RU;en-US</Cultures>
+    <Cultures>ru-RU;en-US;fr-FR</Cultures>
     <DefineConstants>AppDir=$(AppDir);Version=$(Version)</DefineConstants>
   </PropertyGroup>
 

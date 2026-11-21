@@ -26,7 +26,7 @@ The original *PC Monitor All 1.0* and Jonsbo D34 Mon 1.1 on the same PC, running
 | Screen updates | 5/s, normal priority | 4/s from a high-priority thread: the screen doesn't blank even at 100 % CPU load (max gap 265 ms) |
 | Dependencies | closed HWiNFO SDK licensed to JONSBO | open: LibreHardwareMonitor + PawnIO driver |
 | Window | cluttered, 11 dropdowns | replica of the case screen; ⚙ next to a value picks the sensor |
-| Theme / language | none / Chinese, English | light and dark / English, Russian |
+| Theme / language | none / Chinese, English | light and dark / English, Russian, French |
 
 What was wrong with the original (found by reading its decompiled code):
 
@@ -42,7 +42,7 @@ Download from [Releases](../../releases):
 
 | File | What it is |
 |---|---|
-| `Jonsbo.D34.Mon.<version>.en.msi` / `.ru.msi` | installer: Program Files, shortcuts, uninstall from *Apps* |
+| `Jonsbo.D34.Mon.<version>.en.msi` / `.ru.msi` / `.fr.msi` | installer: Program Files, shortcuts, uninstall from *Apps* |
 | `Jonsbo.D34.Mon.<version>.portable.zip` | portable build: unzip and run, settings are stored next to the exe |
 | `SHA256SUMS.txt` | file checksums |
 

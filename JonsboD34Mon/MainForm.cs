@@ -425,7 +425,7 @@ internal sealed class MainForm : Form
                 _appearanceChanged();
                 break;
             case IdLanguage:
-                _settings.English = L.En = !_settings.English;
+                _settings.Lang = L.Lang = (_settings.Lang + 1) % L.Count;
                 _settings.Save();
                 _appearanceChanged();
                 break;

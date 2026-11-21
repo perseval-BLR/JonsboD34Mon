@@ -26,7 +26,7 @@ internal sealed class Settings
     /// <summary>The exe the logon task was last pointed at; the task is re-registered only when this changes.</summary>
     public volatile string AutostartExe = "";
     public bool DarkTheme = true;
-    public bool English = L.SystemPrefersEnglish();
+    public int Lang = L.SystemDefault();
     public bool FirstRun { get; private set; }
 
     public static Settings Load()
@@ -56,7 +56,7 @@ internal sealed class Settings
                     case "Autostart": s.Autostart = value == "1"; break;
                     case "AutostartExe": s.AutostartExe = value; break;
                     case "Theme": s.DarkTheme = value != "light"; break;
-                    case "Language": s.English = value == "en"; break;
+                    case "Language": s.Lang = L.FromCode(value); break;
                 }
             }
         }
@@ -80,7 +80,7 @@ internal sealed class Settings
                 $"CpuTemp={Sensors[0]}\nGpuTemp={Sensors[1]}\nCpuUsage={Sensors[2]}\nCpuFreq={Sensors[3]}\n" +
                 $"Fahrenheit={(Fahrenheit ? 1 : 0)}\nScreenOn={(ScreenOn ? 1 : 0)}\n" +
                 $"Autostart={(Autostart ? 1 : 0)}\nAutostartExe={AutostartExe}\n" +
-                $"Theme={(DarkTheme ? "dark" : "light")}\nLanguage={(English ? "en" : "ru")}\n");
+                $"Theme={(DarkTheme ? "dark" : "light")}\nLanguage={L.Code(Lang)}\n");
             File.Move(temp, FilePath, overwrite: true);
         }
         catch (IOException) { }

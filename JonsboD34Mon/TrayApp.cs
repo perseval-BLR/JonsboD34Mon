@@ -16,7 +16,7 @@ internal sealed class TrayApp : ApplicationContext
 
     public TrayApp(EventWaitHandle showRequest)
     {
-        L.En = _settings.English;
+        L.Lang = _settings.Lang;
         _ui.CreateControl();
         _icon = AppIcon.Create(SystemInformation.SmallIconSize.Width);
         _monitor = new SensorMonitor(_settings);

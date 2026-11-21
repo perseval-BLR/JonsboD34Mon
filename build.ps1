@@ -43,7 +43,7 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 if ($LASTEXITCODE) { throw 'installer build failed' }
 
 New-Item -ItemType Directory -Force $dist | Out-Null
-foreach ($c in @{ 'ru-RU' = 'ru'; 'en-US' = 'en' }.GetEnumerator()) {
+foreach ($c in @{ 'ru-RU' = 'ru'; 'en-US' = 'en'; 'fr-FR' = 'fr' }.GetEnumerator()) {
     Copy-Item "$root\Installer\bin\Release\$($c.Key)\JonsboD34Mon.msi" (Join-Path $dist "Jonsbo.D34.Mon.$Version.$($c.Value).msi") -Force
 }
 
